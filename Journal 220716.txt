@@ -1,0 +1,5 @@
+220716
+- if cannot rename, then skip and write down which item (and reason?)
+- proof so that user first picks browse
+- error when find (if not found?)
+- horizontal scroll

@@ -13,87 +13,87 @@ namespace The_Renamer
 {
     public partial class MainForm : Form
     {
+        enum SearchItems { Files, Folders}
         public MainForm()
         { InitializeComponent(); }
-
-        private void button1_Click(object sender, EventArgs e)
+        private void UpdateCounterAll()
+        { this.txtCountAll.Text = this.chkFoundItems.Items.Count.ToString(); UpdateCounterChecked(); }
+        private void UpdateCounterChecked()
+        { this.txtCountChecked.Text = this.chkFoundItems.CheckedIndices.Count.ToString(); }
+        private void btnFiles_Click(object sender, EventArgs e) { Search(SearchItems.Files); }
+        private void btnFolders_Click(object sender, EventArgs e) { Search(SearchItems.Folders); }
+        private void Search(SearchItems sItem)
         {
+            if (this.txtWhere.Text == "") { MessageBox.Show("Please choose where to search"); return; }
             this.chkFoundItems.Items.Clear();
-            string[] files = Directory.GetFiles(this.txtWhere.Text, "*" + this.txtFind.Text + "*", SearchOption.AllDirectories);
-            if (files.Count() == 0)
-            {
-                MessageBox.Show("No Items found");
-            }
+            string[] foundItems;
+            if (sItem == SearchItems.Files)
+            { foundItems = Directory.GetFiles(this.txtWhere.Text, "*" + this.txtFind.Text + "*", SearchOption.AllDirectories); }
             else
-            {
-                //this.chkFoundItems.Items.Add("*All");
-                this.chkFoundItems.Items.AddRange(files);
-            }
+            { foundItems = Directory.GetDirectories(this.txtWhere.Text, "*" + this.txtFind.Text + "*", SearchOption.AllDirectories); }
+            if (foundItems.Count() == 0) { MessageBox.Show("No Items found"); }
+            else { this.chkFoundItems.Items.AddRange(foundItems); }
+            UpdateCounterAll();
         }
-
-        private void button4_Click(object sender, EventArgs e)
+        private void btnBrowse_Click(object sender, EventArgs e)
         {
             var folderBrowserDialog = new FolderBrowserDialog();
             if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
             { this.txtWhere.Text = folderBrowserDialog.SelectedPath; }
         }
-
         private void chkFoundItems_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            //if (this.chkFoundItems.CheckedItems.Count == 1 && this.chkFoundItems.CheckedItems(0) = )
-        }
-
-        private void button6_Click(object sender, EventArgs e)
+        { UpdateCounterChecked(); }
+        private void btnCheck_Click(object sender, EventArgs e)
         {
             for (int i = 0; i < this.chkFoundItems.Items.Count; i++)
             { this.chkFoundItems.SetItemChecked(i, true); }
+            UpdateCounterChecked();
         }
-
-        private void button7_Click(object sender, EventArgs e)
+        private void btnUncheck_Click(object sender, EventArgs e)
         {
             foreach (int i in this.chkFoundItems.CheckedIndices)
             { this.chkFoundItems.SetItemCheckState(i, CheckState.Unchecked); }
+            UpdateCounterChecked();
         }
-
-        private void button2_Click(object sender, EventArgs e)
+        private void btnReplace_Click(object sender, EventArgs e)
         {
-            this.chkFoundItems.Items.Clear();
-            string[] files = Directory.GetDirectories(this.txtWhere.Text, "*" + this.txtFind.Text + "*", SearchOption.AllDirectories);
-            if (files.Count() == 0)
-            { MessageBox.Show("No Items found"); }
-            else
-            {
-                //this.chkFoundItems.Items.Add("*All");
-                this.chkFoundItems.Items.AddRange(files);
-            }
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            foreach (string s in this.chkFoundItems.CheckedItems)
+            string oldName = string.Empty;
+            if (this.chkFoundItems.CheckedItems.Count == 0) { MessageBox.Show("No items selected!"); return; }
+            try
             { 
-                DirectoryInfo di = new DirectoryInfo(s);
-                string oldName = di.Name;
-                string newName = oldName.Replace(this.txtFind.Text, this.txtReplace.Text);
-                RenameTo(di, newName); 
+                foreach (string itemToRename in this.chkFoundItems.CheckedItems)
+                { 
+                    DirectoryInfo dirInfo = new DirectoryInfo(itemToRename);
+                    oldName = dirInfo.Name;
+                    string newName = oldName.Replace(this.txtFind.Text, this.txtReplace.Text);
+                    RenameTo(dirInfo, newName); 
+                }
+                this.chkFoundItems.Items.Clear();
+                UpdateCounterAll();
+                MessageBox.Show("Finished");
             }
-            this.chkFoundItems.Items.Clear();
-            MessageBox.Show("Finished");
+            catch(Exception ex)
+            { MessageBox.Show(ex.Message + Environment.NewLine + @"Problematic file/folder: " + oldName); }
         }
         //private DirectoryInfo DirectoryInfo(string s)
         //{
         //    throw new NotImplementedException();
         //}
-        public static void RenameTo(DirectoryInfo di, string newName)//this direct
+        public static void RenameTo(DirectoryInfo dirInfo, string newName)//this direct
         {
-            if (di == null)
+            if (dirInfo == null)
             { throw new ArgumentNullException("di", "Directory info to rename cannot be null"); }
 
             if (string.IsNullOrWhiteSpace(newName))
             { throw new ArgumentException("Old string cannot be null or blank", "Chars"); }
 
-            string oldPath = di.Parent.FullName;
-            di.MoveTo(Path.Combine(oldPath, newName));
+            string oldName = dirInfo.Name;
+            if (oldName == newName) { return; }
+
+            string oldFolder = dirInfo.Parent.FullName;
+            string newFullName = Path.Combine(oldFolder, newName);
+
+            dirInfo.MoveTo(newFullName);
 
             //return; //done
         }
